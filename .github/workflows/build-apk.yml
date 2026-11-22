@@ -1,0 +1,33 @@
+name: Build Sonora APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout Sonora source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Provision Gradle 8.11.1 (no wrapper binary required)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.11.1
+
+      - name: Compile Debug APK
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Upload Sonora APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sonora-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
