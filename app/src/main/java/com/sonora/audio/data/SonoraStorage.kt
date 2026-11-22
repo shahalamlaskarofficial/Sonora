@@ -1,4 +1,4 @@
-lpackage com.sonora.audio.data
+package com.sonora.audio.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
