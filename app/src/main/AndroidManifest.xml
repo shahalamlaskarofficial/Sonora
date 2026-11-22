@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Bluetooth permissions across Android 8 - 15 -->
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- Audio & Foreground Service -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Allow detecting installed manufacturer companion apps -->
+    <queries>
+        <package android:name="com.samsung.android.app.watchmanager" />
+        <package android:name="com.sony.songpal.mdr" />
+        <package android:name="jbl.stc.com" />
+        <package android:name="com.heytap.headset" />
+        <package android:name="com.realme.link" />
+        <package android:name="com.boat.hearables" />
+        <package android:name="com.noisefit" />
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_sonora_logo"
+        android:label="Sonora"
+        android:roundIcon="@drawable/ic_sonora_logo"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Sonora">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".service.SonoraService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+    </application>
+</manifest>
