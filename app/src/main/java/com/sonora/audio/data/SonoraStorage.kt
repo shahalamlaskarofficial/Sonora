@@ -1,4 +1,4 @@
-package com.sonora.audio.data
+lpackage com.sonora.audio.data
 
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -19,6 +19,12 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private val Context.sonoraDataStore by preferencesDataStore(name = "sonora_audio_store")
+
+typealias ProfileMap = Map<String, DeviceAudioProfile>
+typealias DeviceMap = Map<String, AudioDeviceUi>
+typealias PresetList = List<EqPreset>
+typealias HistoryList = List<ConnectionHistoryEntry>
+typealias WiredSlotList = List<Pair<String, String>>
 
 data class SonoraSettings(
     val darkTheme: Boolean = true,
@@ -45,6 +51,12 @@ class SonoraStorage(private val context: Context) {
         val WIRED_PROFILES_LIST = stringPreferencesKey("wired_profiles_names_json")
     }
 
+    private val defaultWiredSlots: WiredSlotList = listOf(
+        "wired_default" to "Primary Wired IEM",
+        "wired_studio" to "Studio Over-Ear",
+        "wired_usbc" to "USB-C DAC Headset"
+    )
+
     val settingsFlow: Flow<SonoraSettings> = context.sonoraDataStore.data.map { prefs ->
         SonoraSettings(
             darkTheme = prefs[Keys.DARK_THEME] ?: true,
@@ -56,38 +68,36 @@ class SonoraStorage(private val context: Context) {
         )
     }
 
-    val profilesFlow: Flow> = context.sonoraDataStore.data.map { prefs ->
+    val profilesFlow: Flow<ProfileMap> = context.sonoraDataStore.data.map { prefs ->
         parseProfiles(prefs[Keys.PROFILES_JSON])
     }
 
-    val customPresetsFlow: Flow<List<EqPreset>> = context.sonoraDataStore.data.map { prefs ->
+    val customPresetsFlow: Flow<PresetList> = context.sonoraDataStore.data.map { prefs ->
         parseCustomPresets(prefs[Keys.CUSTOM_PRESETS_JSON])
     }
 
-    val savedDevicesFlow: Flow> = context.sonoraDataStore.data.map { prefs ->
+    val savedDevicesFlow: Flow<DeviceMap> = context.sonoraDataStore.data.map { prefs ->
         parseSavedDevices(prefs[Keys.SAVED_DEVICES_JSON])
     }
 
-    val historyFlow: Flow<List<ConnectionHistoryEntry>> = context.sonoraDataStore.data.map { prefs ->
+    val historyFlow: Flow<HistoryList> = context.sonoraDataStore.data.map { prefs ->
         parseHistory(prefs[Keys.HISTORY_JSON])
     }
 
-    val wiredSlotsFlow: Flow<List<Pair<String, String>>> = context.sonoraDataStore.data.map { prefs ->
+    val wiredSlotsFlow: Flow<WiredSlotList> = context.sonoraDataStore.data.map { prefs ->
         val raw = prefs[Keys.WIRED_PROFILES_LIST]
         if (raw.isNullOrBlank()) {
-            listOf(
-                "wired_default" to "Primary Wired IEM",
-                "wired_studio" to "Studio Over-Ear",
-                "wired_usbc" to "USB-C DAC Headset"
-            )
+            defaultWiredSlots
         } else {
-            val arr = JSONArray(raw)
-            buildList {
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    add(obj.getString("id") to obj.getString("name"))
+            runCatching {
+                val arr = JSONArray(raw)
+                buildList {
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        add(obj.getString("id") to obj.getString("name"))
+                    }
                 }
-            }
+            }.getOrDefault(defaultWiredSlots)
         }
     }
 
@@ -186,7 +196,7 @@ class SonoraStorage(private val context: Context) {
         }
     }
 
-    private fun parseProfiles(json: String?): Map<String, DeviceAudioProfile> {
+    private fun parseProfiles(json: String?): ProfileMap {
         if (json.isNullOrBlank()) return emptyMap()
         return runCatching {
             val arr = JSONArray(json)
@@ -213,7 +223,7 @@ class SonoraStorage(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
-    private fun serializeProfiles(map: Map<String, DeviceAudioProfile>): String {
+    private fun serializeProfiles(map: ProfileMap): String {
         val arr = JSONArray()
         map.values.forEach { p ->
             val bands = JSONArray()
@@ -235,7 +245,7 @@ class SonoraStorage(private val context: Context) {
         return arr.toString()
     }
 
-    private fun parseCustomPresets(json: String?): List<EqPreset> {
+    private fun parseCustomPresets(json: String?): PresetList {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val arr = JSONArray(json)
@@ -260,7 +270,7 @@ class SonoraStorage(private val context: Context) {
         }.getOrDefault(emptyList())
     }
 
-    private fun serializePresets(list: List<EqPreset>): String {
+    private fun serializePresets(list: PresetList): String {
         val arr = JSONArray()
         list.forEach { p ->
             val b = JSONArray()
@@ -278,7 +288,7 @@ class SonoraStorage(private val context: Context) {
         return arr.toString()
     }
 
-    private fun parseSavedDevices(json: String?): Map<String, AudioDeviceUi> {
+    private fun parseSavedDevices(json: String?): DeviceMap {
         if (json.isNullOrBlank()) return emptyMap()
         return runCatching {
             val arr = JSONArray(json)
@@ -307,7 +317,7 @@ class SonoraStorage(private val context: Context) {
         }.getOrDefault(emptyMap())
     }
 
-    private fun serializeDevices(map: Map<String, AudioDeviceUi>): String {
+    private fun serializeDevices(map: DeviceMap): String {
         val arr = JSONArray()
         map.values.forEach { d ->
             arr.put(
@@ -324,7 +334,7 @@ class SonoraStorage(private val context: Context) {
         return arr.toString()
     }
 
-    private fun parseHistory(json: String?): List<ConnectionHistoryEntry> {
+    private fun parseHistory(json: String?): HistoryList {
         if (json.isNullOrBlank()) return emptyList()
         return runCatching {
             val arr = JSONArray(json)
@@ -346,17 +356,18 @@ class SonoraStorage(private val context: Context) {
         }.getOrDefault(emptyList())
     }
 
-    private fun serializeHistory(list: List<ConnectionHistoryEntry>): String {
+    private fun serializeHistory(list: HistoryList): String {
         val arr = JSONArray()
         list.forEach { h ->
-            arr.put(
-                JSONObject()
-                    .put("id", h.deviceId)
-                    .put("name", h.deviceName)
-                    .put("type", h.connectionType)
-                    .put("ts", h.timestampMs)
-                    .put("bat", h.batteryPercent)
-            )
+            val obj = JSONObject()
+                .put("id", h.deviceId)
+                .put("name", h.deviceName)
+                .put("type", h.connectionType)
+                .put("ts", h.timestampMs)
+            if (h.batteryPercent != null) {
+                obj.put("bat", h.batteryPercent)
+            }
+            arr.put(obj)
         }
         return arr.toString()
     }
